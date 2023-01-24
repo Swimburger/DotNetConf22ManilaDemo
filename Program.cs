@@ -3,31 +3,38 @@ using System.Text;
 using Twilio.AspNet.Core;
 using Twilio.TwiML;
 
-var devTunnelUrl = Environment.GetEnvironmentVariable("VS_TUNNEL_URL");
-
 var builder = WebApplication.CreateBuilder(args);
 
+var devTunnelUrl = Environment.GetEnvironmentVariable("VS_TUNNEL_URL");
+if (devTunnelUrl != null)
+{
+    builder.Configuration.AddInMemoryCollection(new[]
+    {
+        new KeyValuePair<string, string?>("Twilio:RequestValidation:BaseUrlOverride", devTunnelUrl)
+    });
+}
+
 #region HTTP Logging
+
 builder.Services.AddHttpLogging(options =>
 {
     options.LoggingFields = HttpLoggingFields.All;
     options.MediaTypeOptions.AddText("application/x-www-form-urlencoded", Encoding.UTF8);
     options.RequestHeaders.Add("x-twilio-signature");
 });
+
 #endregion
 
 #region Request Validation
-//builder.Services.AddTwilioRequestValidation((provider, options) =>
-//{
-//    builder.Configuration.GetSection("Twilio:RequestValidation").Bind(options);
-//    if (devTunnelUrl != null)
-//        options.BaseUrlOverride = devTunnelUrl;
-//});
+
+builder.Services.AddTwilioRequestValidation();
+
 #endregion
 
 var app = builder.Build();
 
 #region HTTP Logging
+
 app.UseHttpLogging();
 
 // force body to be read for the sake of HTTP logging middleware
@@ -41,11 +48,12 @@ app.Use(async (context, next) =>
     context.Request.Body.Position = 0;
     await next();
 });
+
 #endregion
 
 app.MapPost("/message", () => new MessagingResponse()
-        .Message("Ahoy .NET Conf, Manila!")
-        .ToTwiMLResult()
+    .Message("Ahoy .NET Conf, Manila!")
+    .ToTwiMLResult()
 );
 
 //app.MapPost("/message", async (HttpRequest request, CancellationToken cancellationToken) =>
