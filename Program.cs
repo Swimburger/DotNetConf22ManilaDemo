@@ -3,19 +3,21 @@ using System.Text;
 using Twilio.AspNet.Core;
 using Twilio.TwiML;
 
-
 var builder = WebApplication.CreateBuilder(args);
 
 #region HTTP Logging
+
 builder.Services.AddHttpLogging(options =>
 {
     options.LoggingFields = HttpLoggingFields.All;
     options.MediaTypeOptions.AddText("application/x-www-form-urlencoded", Encoding.UTF8);
     options.RequestHeaders.Add("x-twilio-signature");
 });
+
 #endregion
 
 #region Request Validation
+
 var devTunnelUrl = Environment.GetEnvironmentVariable("VS_TUNNEL_URL");
 if (devTunnelUrl != null)
 {
@@ -23,13 +25,16 @@ if (devTunnelUrl != null)
     {
         {"Twilio:RequestValidation:BaseUrlOverride", devTunnelUrl}
     });
-    builder.Services.AddTwilioRequestValidation();
 }
+
+builder.Services.AddTwilioRequestValidation();
+
 #endregion
 
 var app = builder.Build();
 
 #region HTTP Logging
+
 app.UseHttpLogging();
 
 // force body to be read for the sake of HTTP logging middleware
@@ -43,11 +48,12 @@ app.Use(async (context, next) =>
     context.Request.Body.Position = 0;
     await next();
 });
+
 #endregion
 
 app.MapPost("/message", () => new MessagingResponse()
-        .Message("Ahoy .NET Conf, Manila!")
-        .ToTwiMLResult()
+    .Message("Ahoy .NET Conf, Manila!")
+    .ToTwiMLResult()
 );
 
 //app.MapPost("/message", async (HttpRequest request, CancellationToken cancellationToken) =>
