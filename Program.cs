@@ -3,7 +3,6 @@ using System.Text;
 using Twilio.AspNet.Core;
 using Twilio.TwiML;
 
-var devTunnelUrl = Environment.GetEnvironmentVariable("VS_TUNNEL_URL");
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,12 +16,15 @@ builder.Services.AddHttpLogging(options =>
 #endregion
 
 #region Request Validation
-//builder.Services.AddTwilioRequestValidation((provider, options) =>
-//{
-//    builder.Configuration.GetSection("Twilio:RequestValidation").Bind(options);
-//    if (devTunnelUrl != null)
-//        options.BaseUrlOverride = devTunnelUrl;
-//});
+var devTunnelUrl = Environment.GetEnvironmentVariable("VS_TUNNEL_URL");
+if (devTunnelUrl != null)
+{
+    builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>()
+    {
+        {"Twilio:RequestValidation:BaseUrlOverride", devTunnelUrl}
+    });
+    builder.Services.AddTwilioRequestValidation();
+}
 #endregion
 
 var app = builder.Build();
