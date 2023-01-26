@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.HttpLogging;
+using Microsoft.AspNetCore.HttpOverrides;
 using System.Text;
 using Twilio.AspNet.Core;
 using Twilio.TwiML;
@@ -16,20 +17,9 @@ builder.Services.AddHttpLogging(options =>
 
 #endregion
 
-#region Request Validation
-
-var devTunnelUrl = Environment.GetEnvironmentVariable("VS_TUNNEL_URL");
-if (devTunnelUrl != null)
-{
-    builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>()
-    {
-        {"Twilio:RequestValidation:BaseUrlOverride", devTunnelUrl}
-    });
-}
-
 builder.Services.AddTwilioRequestValidation();
 
-#endregion
+builder.Services.Configure<ForwardedHeadersOptions>(options => options.ForwardedHeaders = ForwardedHeaders.All);
 
 var app = builder.Build();
 
@@ -51,10 +41,12 @@ app.Use(async (context, next) =>
 
 #endregion
 
+app.UseForwardedHeaders();
+
 app.MapPost("/message", () => new MessagingResponse()
     .Message("Ahoy .NET Conf, Manila!")
     .ToTwiMLResult()
-);
+).ValidateTwilioRequest();
 
 //app.MapPost("/message", async (HttpRequest request, CancellationToken cancellationToken) =>
 //{
