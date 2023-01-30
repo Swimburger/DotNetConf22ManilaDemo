@@ -44,7 +44,7 @@ app.Use(async (context, next) =>
 app.UseForwardedHeaders();
 
 app.MapPost("/message", () => new MessagingResponse()
-    .Message("Ahoy .NET Conf, Manila!")
+    .Message("Ahoy!")
     .ToTwiMLResult()
 ).ValidateTwilioRequest();
 
