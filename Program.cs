@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.AspNetCore.HttpOverrides;
 using System.Text;
 using Twilio.AspNet.Core;
+using Twilio.Clients;
+using Twilio.Rest.Api.V2010.Account;
 using Twilio.TwiML;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,9 +19,13 @@ builder.Services.AddHttpLogging(options =>
 
 #endregion
 
-builder.Services.AddTwilioRequestValidation();
+builder.Services
+    .AddTwilioClient()
+    .AddTwilioRequestValidation();
 
-builder.Services.Configure<ForwardedHeadersOptions>(options => options.ForwardedHeaders = ForwardedHeaders.All);
+builder.Services.Configure<ForwardedHeadersOptions>(
+    options => options.ForwardedHeaders = ForwardedHeaders.All
+);
 
 var app = builder.Build();
 
@@ -57,5 +63,19 @@ app.MapPost("/message", () => new MessagingResponse()
 //        .Message($"You said: {body}")
 //        .ToTwiMLResult();
 //});
+
+#region Configure webhook URL
+var devTunnelUrl = Environment.GetEnvironmentVariable("VS_TUNNEL_URL");
+if (devTunnelUrl != null)
+{
+    using var scope = app.Services.CreateScope();
+    var twilioClient = scope.ServiceProvider.GetRequiredService<ITwilioRestClient>();
+    await IncomingPhoneNumberResource.UpdateAsync(
+        pathSid: app.Configuration["Twilio:PhoneNumberSid"],
+        smsUrl: new Uri($"{devTunnelUrl}message", UriKind.Absolute),
+        client: twilioClient
+    );
+}
+#endregion
 
 app.Run();
